@@ -1,18 +1,22 @@
 # Import the required libraries
-from PIL import Image
 import numpy as np
-import matplotlib.pyplot as plt
+
 
 # A class to store all operators
 class Operator:
+    # Prewitt operator for Gx
     gx = np.array([
         [-1,0,1],
         [-1,0,1],
         [-1,0,1]])
+    
+    # Prewitt operator for Gy
     gy = np.array([
         [1,1,1],
         [0,0,0],
         [-1,-1,-1]])
+
+    # Gaussian mask
     gaussian_mask = np.array([
         [1,1,2,2,2,1,1],
         [1,2,2,4,2,2,1],
@@ -25,13 +29,16 @@ class Operator:
 # A class to store sector angle definitions and method to provide sector based on angle
 class Sector():
     def __init__(self):
+        # Dictionary with {sector: sector range}
         self.sector = {0: [(0, 22.5),(337.5,360),(157.5,202.5)], 1: [(22.5,67.5), (202.5,247.5)], 2:[(67.5,112.5), (247.5, 292.5)], 3:[(112.5, 157.5), (292.5,337.5)]}
 
     def get_sector(self, angle):
         for key, val in self.sector.items():
             for l,u in val:
+                # check if angle lies in the range if yes return key
                 if angle >= l and angle < u:
                     return key
+        # If angle is not in any range we return -1. (Not going to happen. Its there for correctness)
         return -1
 
 # A function to apply dicreet convolutions
@@ -104,64 +111,134 @@ def perform_gradient_operation(image):
     # Compute magnitude of the gradient
     m = np.sqrt(np.square(dfdx) + np.square(dfdy))
 
+    # Normalize gradient magnitude
+    m = np.absolute(m) / 3
+
     # Compute gradient angle
     theta = np.degrees(np.arctan2(dfdy, dfdx))
 
     return m, theta
 
+
 def perform_non_maxima_suppression(magnitude, gradient_angle):
+    '''
+    Args:
+        magnitude : Magnitude of the gradient
+        gradient_angle : Gradient angle
+    Returns:
+        Magnitude : Magnitude array after non-maxima supression
+    '''
+    # Compute positive angles
     positive_gradient_angle = get_positive_angle(gradient_angle)
+
+    # Get magnitude array shape
     m_arr, n_arr = magnitude.shape
+
+    # reference pixel location during start of the process
     rpi_m, rpi_n = 1,1
+
+    # Build output array
     output_arr = np.ones((m_arr , n_arr)) * np.nan
+
     for i in range(m_arr - 2):
         for j in range(n_arr - 2):
+            # Compute output pixel location for output array
             op_m, op_n = i + rpi_m, j + rpi_n
+
+            # Get 3 x 3 magnitude slice
             arr_slice = magnitude[i:i+3, j:j+3]
+
+            # Get 3 x 3 angle slice
             angle_slice = positive_gradient_angle[i:i+3, j:j+3]
+
+            # If undefined value at reference pixel in magnitude or angle put zero in output pixel location
             if np.isnan(arr_slice[rpi_m][rpi_n]) or np.isnan(angle_slice[rpi_m][rpi_n]):
                 output_arr[op_m][op_n] = 0
             else:
+                # Get the sector value
                 sector = Sector().get_sector(angle_slice[rpi_m][rpi_n])
+                
                 if sector == 0:
+                    # If undefined value at any of sector neighbour put zero in output pixel location
                     if np.isnan(arr_slice[rpi_m][rpi_n+1]) or np.isnan(arr_slice[rpi_m][rpi_n-1]):
                         output_arr[op_m][op_n] = 0
+
+                    # If reference pixel is greater than its sector neighbours put reference pixel value at output location
                     elif arr_slice[rpi_m][rpi_n] > arr_slice[rpi_m][rpi_n+1] and arr_slice[rpi_m][rpi_n] > arr_slice[rpi_m][rpi_n-1]:
                         output_arr[op_m][op_n] = arr_slice[rpi_m][rpi_n]
+
+                    # If reference pixel value is less than its sector neighbours put zero in output pixel location
                     else:
                         output_arr[op_m][op_n] = 0
+ 
                 elif sector == 1:
+                    # If undefined value at any of sector neighbour put zero in output pixel location
                     if np.isnan(arr_slice[rpi_m-1][rpi_n+1]) or np.isnan(arr_slice[rpi_m+1][rpi_n-1]):
                         output_arr[op_m][op_n] = 0
+
+                    # If reference pixel is greater than its sector neighbours put reference pixel value at output location
                     elif arr_slice[rpi_m][rpi_n] > arr_slice[rpi_m-1][rpi_n+1] and arr_slice[rpi_m][rpi_n] > arr_slice[rpi_m+1][rpi_n-1]:
                         output_arr[op_m][op_n] = arr_slice[rpi_m][rpi_n]
+
+                    # If reference pixel value is less than its sector neighbours put zero in output pixel location
                     else:
                         output_arr[op_m][op_n] = 0
+
                 elif sector == 2:
+                    # If undefined value at any of sector neighbour put zero in output pixel location
                     if np.isnan(arr_slice[rpi_m-1][rpi_n]) or np.isnan(arr_slice[rpi_m+1][rpi_n]):
                         output_arr[op_m][op_n] = 0
+
+                    # If reference pixel is greater than its sector neighbours put reference pixel value at output location
                     elif arr_slice[rpi_m][rpi_n] > arr_slice[rpi_m-1][rpi_n] and arr_slice[rpi_m][rpi_n] > arr_slice[rpi_m+1][rpi_n]:
                         output_arr[op_m][op_n] = arr_slice[rpi_m][rpi_n]
+
+                    # If reference pixel value is less than its sector neighbours put zero in output pixel location
                     else:
                         output_arr[op_m][op_n] = 0
+
                 elif sector == 3:
+                    # If undefined value at any of sector neighbour put zero in output pixel location
                     if np.isnan(arr_slice[rpi_m-1][rpi_n-1]) or np.isnan(arr_slice[rpi_m+1][rpi_n+1]):
                         output_arr[op_m][op_n] = 0
+
+                    # If reference pixel is greater than its sector neighbours put reference pixel value at output location
                     elif arr_slice[rpi_m][rpi_n] > arr_slice[rpi_m-1][rpi_n-1] and arr_slice[rpi_m][rpi_n] > arr_slice[rpi_m+1][rpi_n+1]:
                         output_arr[op_m][op_n] = arr_slice[rpi_m][rpi_n]
+
+                    # If reference pixel value is less than its sector neighbours put zero in output pixel location
                     else:
                         output_arr[op_m][op_n] = 0
+
+                # If sector value is other 0,1,2,3 raise an error.(Not going to happen its there for correctness)
                 else:
                     raise f"Undefined sector: {sector}"           
     return output_arr
 
 
 def perform_thresholding(image):
+    '''
+    Args:
+        image: Non maxima suppressed
+    Returns:
+        img1 : Image after applying threshold t1
+        img2 : Image after applying threshold t2
+        img3 : Image after applying threshold t3
+    '''
+
+    # Store all the values of image after non- maxima suppression which are greater than zero into array
     image_arr = image[image>0].ravel()
+
+    # Get 25th percentile of the array
     t1 = np.percentile(image_arr,25)
+
+    # Get 50th percentile of the array
     t2 = np.percentile(image_arr,50)
+
+    # Get 75th percentile of the array
     t3 = np.percentile(image_arr,75)
     
+    # Apply threshold to the image and convert it into integer array
     return (image > t1).astype("int32"), (image > t2).astype("int32"), (image > t3).astype("int32") 
 
 
@@ -177,7 +254,30 @@ def perform_thresholding(image):
 
 
 if __name__ == "__main__":
-    print("Running")
+    import argparse
+    import matplotlib.pyplot as plt
+    from PIL import Image
+
+    parser=argparse.ArgumentParser()
+    parser.add_argument('--input_image', '-i', help='Image path')
+    args = parser.parse_args()
+    # image_path = ''
+    if args.input_image == None:
+        image_path = input("Enter image path:\n")
+    else:
+        image_path = args.input_image
+    # Reading the image
+    print("Reading the image")
+    image = np.array(Image.open(image_path))
+
+    print("Performing gaussian smoothing")
+    gaussian_smooth_image = perform_gaussian_smoothing()
+    
+
+
+
+
+    # print("Running")
     # test_arr = np.array([[1, 1, 1, 1, 1, 1, 5],
     #             [1, 1, 1, 1, 1, 5, 9],
     #             [1, 1, 1, 1, 5, 9, 9],
@@ -190,15 +290,19 @@ if __name__ == "__main__":
     # print(THETA)
     # NMS = perform_non_maxima_suppression(M, THETA)
     # print(NMS)
-    test_image = np.array(Image.open('lena512.bmp'))
-    g_img = perform_gaussian_smoothing(test_image)
-    M, THETA = perform_gradient_operation(g_img)
-    NMS = perform_non_maxima_suppression(M, THETA)
-    T1, T2, T3 = perform_thresholding(NMS)
-    plt.imshow(T1, cmap = "gray")
-    plt.show()
-    plt.imshow(T2, cmap = "gray")
-    plt.show()
-    plt.imshow(T3, cmap = "gray")
-    plt.show()
+    # T1, T2, T3 = perform_thresholding(NMS)
+    # print(T1)
+
+    
+
+    # g_img = perform_gaussian_smoothing(test_image)
+    # M, THETA = perform_gradient_operation(g_img)
+    # NMS = perform_non_maxima_suppression(M, THETA)
+    # T1, T2, T3 = perform_thresholding(NMS)
+    # plt.imshow(T1, cmap = "gray")
+    # plt.show()
+    # plt.imshow(T2, cmap = "gray")
+    # plt.show()
+    # plt.imshow(T3, cmap = "gray")
+    # plt.show()
     
