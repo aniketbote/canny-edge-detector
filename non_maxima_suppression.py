@@ -1,5 +1,6 @@
 import numpy as np
 from utils import get_positive_angle, Sector
+import cv2
 import os
 
 def perform_non_maxima_suppression(args, image_name, magnitude, gradient_angle):
@@ -94,5 +95,6 @@ def perform_non_maxima_suppression(args, image_name, magnitude, gradient_angle):
 
                 # If sector value is other 0,1,2,3 raise an error.(Not going to happen its there for correctness)
                 else:
-                    raise f"Undefined sector: {sector}"           
+                    raise f"Undefined sector: {sector}"    
+    cv2.imwrite(os.path.join(args.output_folder, image_name + '_non_maxima_supression.bmp'), output_arr)       
     return output_arr

@@ -41,7 +41,7 @@ if __name__ == "__main__":
     for image_name in images:
         output_image_name = image_name.split('\\')[1].split('.bmp')[0]
         img = cv2.imread(image_name)
-        gray_img=cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)   
+        gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)   
 
         print("Performing gaussian smoothing for image: " + output_image_name)
         gaussian_smooth_image = perform_gaussian_smoothing(args, output_image_name, gray_img)
