@@ -20,7 +20,6 @@ def perform_gaussian_smoothing(args, image_name, image):
     image = image / np.sum(Operator.gaussian_mask)
  
     #write image into the output folder after normalization
-    # cv2.imwrite('Output/image_gaussian_smooth_normalized.bmp' + str(uuid.uuid4()), image)
     cv2.imwrite(os.path.join(args.output_folder, image_name + '_gaussian_smooth_normalized.bmp'), image)
 
     # Return the smoothened image
