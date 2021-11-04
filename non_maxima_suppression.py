@@ -1,7 +1,9 @@
-import numpy as np
-from utils import get_positive_angle, Sector
-import cv2
 import os
+
+import numpy as np
+import cv2
+
+from utils import get_positive_angle, Sector
 
 def perform_non_maxima_suppression(args, image_name, magnitude, gradient_angle):
     '''
