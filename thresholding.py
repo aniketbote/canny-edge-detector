@@ -1,6 +1,7 @@
+import os
+
 import numpy as np
 import cv2
-import os
 
 def perform_thresholding(args, image_name, image):
     '''
@@ -17,16 +18,19 @@ def perform_thresholding(args, image_name, image):
 
     # Get 25th percentile of the array
     t1 = np.percentile(image_arr,25)
-    cv2.imwrite(os.path.join(args.output_folder, image_name + '_threshold_t1.bmp'), (image > t1).astype("int32"))
+    image_1 = (image > t1).astype("int32")
+    cv2.imwrite(os.path.join(args.output_folder, image_name + f'_threshold_t1_{np.round(t1, 2)}.bmp'), image_1 * 255) # Multiplying the image with 255 for contrast
 
     # Get 50th percentile of the array
     t2 = np.percentile(image_arr,50)
-    cv2.imwrite(os.path.join(args.output_folder, image_name + '_threshold_t2.bmp'), (image > t2).astype("int32"))
+    image_2 = (image > t2).astype("int32")
+    cv2.imwrite(os.path.join(args.output_folder, image_name + f'_threshold_t2_{np.round(t2, 2)}.bmp'), image_2 * 255)
 
     # Get 75th percentile of the array
     t3 = np.percentile(image_arr,75)
-    cv2.imwrite(os.path.join(args.output_folder, image_name + '_threshold_t3.bmp'), (image > t2).astype("int32"))
+    image_3 = (image > t3).astype("int32")
+    cv2.imwrite(os.path.join(args.output_folder, image_name + f'_threshold_t3_{np.round(t3, 2)}.bmp'), image_3 * 255)
     
     # Apply threshold to the image and convert it into integer array
-    return (image > t1).astype("int32"), (image > t2).astype("int32"), (image > t3).astype("int32") 
+    return image_1, image_2, image_3 
 
