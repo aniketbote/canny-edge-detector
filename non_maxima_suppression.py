@@ -1,3 +1,10 @@
+'''
+Computer Vision Midterm Project
+Project group members:  
+    1. Aniket Bote (N12824308)
+    2. Sindhu Harish (N19806874)
+'''
+
 import os
 
 import numpy as np
